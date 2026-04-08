@@ -7,11 +7,11 @@ services:
       POSTGRES_USER: shubham
       POSTGRES_PASSWORD: 123
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U shubham -d dotnet"]
+      test: [ "CMD-SHELL", "pg_isready -U shubham -d dotnet" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -20,9 +20,9 @@ services:
     image: redis:7
     container_name: redis_cache
     ports:
-      - "6379:6379"
+      - "6380:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -48,6 +48,16 @@ services:
       - Jwt__Issuer=TaskApi
       - Jwt__Audience=TaskApiUsers
       - FrontendUrl=http://localhost:3000
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: react_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
 
 volumes:
   postgres_data:

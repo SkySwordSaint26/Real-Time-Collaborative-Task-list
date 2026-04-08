@@ -1,0 +1,37 @@
+@import "tailwindcss";
+@plugin "daisyui";
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap');
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", sans-serif;
+  
+  --color-accent-primary: #6366f1;
+  --color-accent-secondary: #a855f7;
+}
+
+@layer base {
+  body {
+    @apply bg-base-300 text-base-content;
+    font-family: var(--font-sans);
+  }
+  
+  h1, h2, h3, .brand {
+    font-family: var(--font-display);
+  }
+}
+
+@layer utilities {
+  .glass-card {
+    @apply bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl shadow-xl;
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent;
+  }
+
+  .page-container {
+    @apply container mx-auto px-4 py-8 min-h-screen;
+  }
+}
