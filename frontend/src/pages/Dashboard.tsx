@@ -32,7 +32,7 @@ const Dashboard = () => {
   
   // const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { on } = useSignalR('http://localhost:5000/taskhub');
+  const { connection } = useSignalR('http://localhost:5000/taskhub');
 
   const fetchTasks = async () => {
     setLoading(true);
@@ -61,23 +61,32 @@ const Dashboard = () => {
     return () => clearTimeout(handler);
   }, [search, statusFilter, page]);
 
-  on('ReceiveTaskUpdate', (action: string, task: Task) => {
-    if (action === 'Created') {
-      if (page === 1) setTasks(prev => [task, ...prev].slice(0, 9));
-    } else if (action === 'Updated') {
-      setTasks(prev => prev.map(t => t.id === task.id ? { ...t, ...task } : t));
-    } else if (action === 'Deleted') {
-      setTasks(prev => prev.filter(t => t.id !== task.id));
-    }
-  });
+  useEffect(() => {
+    if (!connection) return;
 
-  on('ReceiveFileUpdate', (action: string, file: any) => {
-    if (action === 'Uploaded') {
-       setTasks(prev => prev.map(t => t.id === file.itemId ? { ...t, files: [...(t.files || []), file] } : t));
-    } else if (action === 'Deleted') {
-       setTasks(prev => prev.map(t => ({ ...t, files: t.files?.filter(f => f.id !== file.id) })));
-    }
-  });
+    connection.on('ReceiveTaskUpdate', (action: string, task: Task) => {
+      if (action === 'Created') {
+        if (page === 1) setTasks(prev => [task, ...prev].slice(0, 9));
+      } else if (action === 'Updated') {
+        setTasks(prev => prev.map(t => t.id === task.id ? { ...t, ...task } : t));
+      } else if (action === 'Deleted') {
+        setTasks(prev => prev.filter(t => t.id !== task.id));
+      }
+    });
+
+    connection.on('ReceiveFileUpdate', (action: string, file: any) => {
+      if (action === 'Uploaded') {
+        setTasks(prev => prev.map(t => t.id === file.itemId ? { ...t, files: [...(t.files || []), file] } : t));
+      } else if (action === 'Deleted') {
+        setTasks(prev => prev.map(t => ({ ...t, files: t.files?.filter(f => f.id !== file.id) })));
+      }
+    });
+
+    return () => {
+      connection.off('ReceiveTaskUpdate');
+      connection.off('ReceiveFileUpdate');
+    };
+  }, [connection, page]);
 
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -19,7 +19,11 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
-      window.location.href = '/login';
+      // Avoid a redirect loop if the user is already trying to authenticate
+      const publicPaths = ['/login', '/register', '/reset-password'];
+      if (!publicPaths.includes(window.location.pathname)) {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

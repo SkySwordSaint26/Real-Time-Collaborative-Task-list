@@ -104,6 +104,12 @@ const Login = () => {
           </form>
 
           <p className="text-center text-sm opacity-60">
+            <Link to="/reset-password" className="link link-hover font-medium">
+              Forgot password?
+            </Link>
+          </p>
+
+          <p className="text-center text-sm opacity-60">
             Need an account?{' '}
             <Link to="/register" className="link link-primary font-bold no-underline hover:underline">
               Create one now

@@ -118,7 +118,7 @@ app.Use(async (context, next) =>
     await next();
 });
 
-app.MapHub<TaskHub>("/taskhub");
+app.MapHub<TaskHub>("/taskhub").RequireAuthorization();
 
 
 
@@ -137,7 +137,7 @@ authGroup.MapPost("/register", async ([FromBody] RegisterDto dto, AppDbContext d
     dto.Password = dto.Password.Trim();
 
     if (await db.Users.AnyAsync(u => u.Name == dto.Username)) 
-        return Results.BadRequest("User already exists");
+        return Results.BadRequest(new { Message = "User already exists" });
     
     // Validate email format
     if (string.IsNullOrEmpty(dto.Email) || !dto.Email.Contains("@"))
@@ -588,14 +588,14 @@ itemsGroup.MapPut("/{id}", async (int id, [FromBody] UpdateItemDto dto, AppDbCon
 
 
 {
-    var item = await db.Items.FirstOrDefaultAsync(i => i.Id == id && !i.IsDeleted);
+    var item = await db.Items
+        .Include(i => i.Files)
+        .FirstOrDefaultAsync(i => i.Id == id && !i.IsDeleted);
     if (item is null) return Results.NotFound();
     
-    var currentUserId = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-    var isAdmin = user.IsInRole("Admin");
-
-    if (item.CreatedBy != currentUserId && !isAdmin)
-        return Results.Forbid();
+    // All authorized users can change tasks as per user request
+    // if (item.CreatedBy != currentUserId && !isAdmin)
+    //    return Results.Forbid();
     
     item.Title = dto.Title.Trim();
     item.Description = dto.Description?.Trim();
@@ -618,8 +618,10 @@ itemsGroup.MapPut("/{id}", async (int id, [FromBody] UpdateItemDto dto, AppDbCon
         Id = item.Id,
         Title = item.Title,
         Description = item.Description,
+        Status = item.Status,
         IsDeleted = item.IsDeleted,
-        CreatedBy = item.CreatedBy
+        CreatedBy = item.CreatedBy,
+        Files = item.Files.Select(f => new FileDto { Id = f.Id, FileName = f.FileName, FilePath = f.FilePath }).ToList()
     };
     
     await hub.Clients.All.SendAsync("ReceiveTaskUpdate", "Updated", itemDto);
@@ -630,7 +632,9 @@ itemsGroup.MapDelete("/{id}", async (int id, AppDbContext db, IHubContext<TaskHu
 
 
 {
-    var item = await db.Items.FirstOrDefaultAsync(i => i.Id == id && !i.IsDeleted);
+    var item = await db.Items
+        .Include(i => i.Files)
+        .FirstOrDefaultAsync(i => i.Id == id && !i.IsDeleted);
     if (item is null) return Results.NotFound();
     
     var currentUserId = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
@@ -652,8 +656,10 @@ itemsGroup.MapDelete("/{id}", async (int id, AppDbContext db, IHubContext<TaskHu
         Id = item.Id,
         Title = item.Title,
         Description = item.Description,
+        Status = item.Status,
         IsDeleted = item.IsDeleted,
-        CreatedBy = item.CreatedBy
+        CreatedBy = item.CreatedBy,
+        Files = item.Files.Select(f => new FileDto { Id = f.Id, FileName = f.FileName, FilePath = f.FilePath }).ToList()
     };
     
     await hub.Clients.All.SendAsync("ReceiveTaskUpdate", "Deleted", itemDto);
@@ -725,7 +731,7 @@ app.MapDelete("/api/v1/files/{id}", async (int id, AppDbContext db, IHubContext<
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.EnsureCreated();
+    db.Database.Migrate();
 
     if (!await db.Users.AnyAsync(u => u.Role == "Admin"))
     {

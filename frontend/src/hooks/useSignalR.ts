@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import * as signalR from '@microsoft/signalr';
 
 export const useSignalR = (hubUrl: string) => {
   const [connection, setConnection] = useState<signalR.HubConnection | null>(null);
+  const connectionRef = useRef<signalR.HubConnection | null>(null);
 
   useEffect(() => {
     const newConnection = new signalR.HubConnectionBuilder()
@@ -12,37 +13,24 @@ export const useSignalR = (hubUrl: string) => {
       .withAutomaticReconnect()
       .build();
 
+    connectionRef.current = newConnection;
     setConnection(newConnection);
-  }, [hubUrl]);
 
-  useEffect(() => {
-    if (connection) {
-      connection.start()
-        .then(() => console.log('Connected to Hub'))
-        .catch(err => console.error('Connection failed: ', err));
-    }
+    const startConnection = async () => {
+      try {
+        await newConnection.start();
+        console.log('Connected to SignalR Hub');
+      } catch (err) {
+        console.error('SignalR Connection Error: ', err);
+      }
+    };
+
+    startConnection();
 
     return () => {
-      connection?.stop();
+      newConnection.stop();
     };
-  }, [connection]);
+  }, [hubUrl]);
 
-  const on = (eventName: string, callback: (...args: any[]) => void) => {
-    useEffect(() => {
-      if (connection) {
-        connection.on(eventName, callback);
-        return () => {
-          connection.off(eventName, callback);
-        };
-      }
-    }, [connection, eventName, callback]);
-  };
-
-  const invoke = async (methodName: string, ...args: any[]) => {
-    if (connection) {
-      return connection.invoke(methodName, ...args);
-    }
-  };
-
-  return { on, invoke, connectionState: connection?.state };
+  return { connection };
 };

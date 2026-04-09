@@ -21,10 +21,11 @@ const Profile = () => {
     try {
       const response = await api.get('/users/profile');
       setProfile(response.data);
-      setName(response.data.name);
-      setEmail(response.data.email);
+      setName(response.data.name || response.data.Name || '');
+      setEmail(response.data.email || response.data.Email || '');
       
-      if (response.data.role === 'Admin') {
+      const role = response.data.role || response.data.Role;
+      if (role === 'Admin') {
         fetchAllUsers();
       }
     } catch (err) {
@@ -98,12 +99,12 @@ const Profile = () => {
             <div className="card-body items-center text-center py-10">
               <div className="avatar placeholder mb-4">
                 <div className="bg-primary text-primary-content rounded-full w-24 ring ring-primary ring-offset-base-100 ring-offset-4 font-black text-4xl">
-                  {name.charAt(0).toUpperCase()}
+                  {name ? name.charAt(0).toUpperCase() : '?'}
                 </div>
               </div>
               <h2 className="card-title text-2xl font-black">{name}</h2>
               <div className="badge badge-primary badge-outline font-black tracking-widest uppercase mt-1">
-                {profile?.role || 'User'}
+                {profile?.role || profile?.Role || 'User'}
               </div>
               <div className="divider opacity-10"></div>
               <div className="flex items-center gap-3 text-sm opacity-70">
@@ -167,7 +168,7 @@ const Profile = () => {
           </div>
 
           {/* Admin Section */}
-          {profile?.role === 'Admin' && (
+          {(profile?.role || profile?.Role) === 'Admin' && (
             <div className="card bg-base-100 shadow-xl border border-white/5">
               <div className="card-body gap-6">
                 <h3 className="text-xl font-bold flex items-center gap-2">
@@ -190,17 +191,17 @@ const Profile = () => {
                             <div className="flex items-center gap-3">
                               <div className="avatar placeholder">
                                 <div className="bg-neutral text-neutral-content rounded-full w-8">
-                                  <span>{u.name.charAt(0)}</span>
+                                  <span>{(u.name || u.Name || '?').charAt(0).toUpperCase()}</span>
                                 </div>
                               </div>
                               <div>
-                                <div className="font-bold">{u.name}</div>
-                                <div className="text-xs opacity-50">ID: {u.id}</div>
+                                <div className="font-bold">{u.name || u.Name || 'Unknown'}</div>
+                                <div className="text-xs opacity-50">ID: {u.id || u.Id}</div>
                               </div>
                             </div>
                           </td>
                           <td>
-                             <span className={`badge badge-sm font-bold ${u.role === 'Admin' ? 'badge-secondary' : 'badge-ghost'}`}>{u.role}</span>
+                             <span className={`badge badge-sm font-bold ${(u.role || u.Role) === 'Admin' ? 'badge-secondary' : 'badge-ghost'}`}>{u.role || u.Role}</span>
                           </td>
                           <td>
                             <div className="dropdown dropdown-end">
